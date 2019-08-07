@@ -1,0 +1,57 @@
+#!/usr/bin/python
+
+import re
+
+from kivy.clock import Clock, mainthread
+from kivy.app import App
+
+from speedmeter import SpeedMeter
+
+from Communication import Communicator
+
+class KtsMeter(SpeedMeter):
+
+    def value_str(self, n):
+        return '%.1f' % (n / 2.0)
+
+_telemetryRe = re.compile('^\d+\s+V=(\d+)\s+\d+\s+I=(\d+)\s+\d+\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+POW=(\d+)\s+')
+
+class AlmaConsole(App):
+
+    def __init__(self):
+        event = Clock.create_trigger(self.input)
+        App.__init__(self)
+        print '10>>', event
+        self.comm = Communicator('/dev/ttyACM0', self.input)
+        self.badFrame = 0
+
+    def set_budget(self, budget, motion):
+        v = budget.get_value(motion.pos)
+        if not v: return
+        print '******', v, '*********'
+        self.comm.write('set budget %d' % int(v * 100))
+        ids = self.root.ids
+        ids.motor_set.state = 'down'
+        ids.motor_off.state = 'normal'
+        ids.motor_auto.state = 'normal'
+
+    @mainthread
+    def input(self, *args):
+        print args[0]
+        m = _telemetryRe.match(args[0])
+        if not m:
+            self.badFrame += 1
+            return
+        v, i, b, l, r, w = m.groups()
+        ids = self.root.ids
+        ids.v.value = float(v) / 10
+        ids.i.value = float(i) / 10
+        ids.b.value = float(b) / 100
+        ids.l.value = float(l) / 100
+        ids.r.value = float(r) / 100
+        ids.w.value = float(w) / 1000
+
+console = AlmaConsole()
+#Clock.schedule_interval(console.tick, 0.5)
+console.run()
+console.comm.destroy()

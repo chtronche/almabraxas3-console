@@ -1,0 +1,88 @@
+# -*- tab-width: 4; indent-tabs-mode: () -*-
+
+<SpeedMeter>:
+    start_angle: -120
+    end_angle: 120
+    cadran_color: '#6060ff'
+    label_font_size: 20
+
+GridLayout:
+	cols: 4
+    padding: 10
+    spacing: 10
+
+    SpeedMeter:
+        id: v
+        max: 22
+        tick: 2
+        subtick: 4
+        sectors: (0, '#ff0000', 6)
+        label: 'V'
+
+    SpeedMeter:
+        id: i
+        max: 12
+        tick: 1
+        label: 'A/10'
+
+    SpeedMeter:
+        id: w
+        max: 26
+        tick: 2
+        subtick: 2
+        label: 'W'
+
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: 'Motor'
+        ToggleButton:
+            id: motor_off
+            group: 'motor'
+            text: 'Off'
+            state: 'down'
+            on_press: app.comm.write('set budget 0')
+            
+        ToggleButton:
+            id: motor_set
+            group: 'motor'
+            text: 'Set'
+            disabled: True
+            
+        ToggleButton:
+            id: motor_auto
+            group: 'motor'
+            text: 'Auto'
+            on_press: app.comm.write('set budget')
+
+    SpeedMeter:
+        id: b
+        max: 14
+        tick: 2
+        subtick: 4
+        label: 'B/100'
+        on_touch_up: app.set_budget(*args)
+
+    SpeedMeter:
+        id: l
+        min: -16
+        max: 16
+        tick: 2
+        subtick: 2
+        label: 'left/100'
+
+    SpeedMeter:
+        id: r
+        min: -16
+        max: 16
+        tick: 2
+        subtick: 2
+        label: 'right/100'
+
+    Label:
+
+    KtsMeter:
+        max: 8
+        tick: 1
+        subtick: 5
+        label: 'kts'
