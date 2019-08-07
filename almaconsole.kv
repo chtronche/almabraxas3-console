@@ -5,34 +5,84 @@
     end_angle: 120
     cadran_color: '#6060ff'
     label_font_size: 20
+    size_hint: None,None
+    width: 200
+    height: 200
+    displayFirst: False
+    displayLast: False
 
-GridLayout:
-	cols: 4
-    padding: 10
-    spacing: 10
+<ToggleButton>:
+    size_hint_y: None
+    height: 24
 
-    SpeedMeter:
-        id: v
-        max: 22
-        tick: 2
-        subtick: 4
-        sectors: (0, '#ff0000', 6)
-        label: 'V'
-
-    SpeedMeter:
-        id: i
-        max: 12
-        tick: 1
-        label: 'A/10'
-
-    SpeedMeter:
-        id: w
-        max: 26
-        tick: 2
-        subtick: 2
-        label: 'W'
+BoxLayout:
+    orientation: 'horizontal'
+    GridLayout:
+    	cols: 4
+        padding: 10
+        spacing: 10
+    
+        Figure:
+            id: graph_aiw
+    
+        SpeedMeter:
+            id: v
+            max: 22
+            tick: 2
+            subtick: 4
+            sectors: (0, '#ff0000', 6)
+            label: 'V'
+    
+        SpeedMeter:
+            id: i
+            max: 12
+            tick: 1
+            label: 'A x 10'
+    
+        SpeedMeter:
+            id: w
+            max: 26
+            tick: 2
+            subtick: 2
+            label: 'W'
+    
+        Label:
+    
+        SpeedMeter:
+            id: b
+            max: 14
+            tick: 2
+            subtick: 4
+            label: 'B/100'
+            on_touch_up: app.set_budget(*args)
+    
+        SpeedMeter:
+            id: l
+            min: -16
+            max: 16
+            tick: 2
+            subtick: 2
+            label: 'left/100'
+    
+        SpeedMeter:
+            id: r
+            min: -16
+            max: 16
+            tick: 2
+            subtick: 2
+            label: 'right/100'
+    
+        Label:
+    
+        KtsMeter:
+            max: 8
+            tick: 1
+            subtick: 5
+            label: 'kts'
 
     BoxLayout:
+        size_hint_x: None
+        width: 100
         orientation: 'vertical'
         Label:
             text: 'Motor'
@@ -55,34 +105,3 @@ GridLayout:
             text: 'Auto'
             on_press: app.comm.write('set budget')
 
-    SpeedMeter:
-        id: b
-        max: 14
-        tick: 2
-        subtick: 4
-        label: 'B/100'
-        on_touch_up: app.set_budget(*args)
-
-    SpeedMeter:
-        id: l
-        min: -16
-        max: 16
-        tick: 2
-        subtick: 2
-        label: 'left/100'
-
-    SpeedMeter:
-        id: r
-        min: -16
-        max: 16
-        tick: 2
-        subtick: 2
-        label: 'right/100'
-
-    Label:
-
-    KtsMeter:
-        max: 8
-        tick: 1
-        subtick: 5
-        label: 'kts'

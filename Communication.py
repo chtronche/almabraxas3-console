@@ -16,7 +16,6 @@ class Communicator:
         getLine = self.in_.read_until
         while self.alive:
             line = getLine().rstrip()
-            print '10>>', line
             self.callback(line)
 
     def destroy(self):

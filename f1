@@ -1,18 +1,64 @@
 #!/usr/bin/python
 
+from kivy.config import Config
+Config.set('graphics', 'width', 1100)
+Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
+
+import matplotlib.pyplot as plt
 import re
 
-from kivy.clock import Clock, mainthread
 from kivy.app import App
-
-from speedmeter import SpeedMeter
+from kivy.clock import Clock, mainthread
+from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
+from kivy.properties import ListProperty, NumericProperty
 
 from Communication import Communicator
+from speedmeter import SpeedMeter
 
 class KtsMeter(SpeedMeter):
 
     def value_str(self, n):
         return '%.1f' % (n / 2.0)
+
+class Figure(FigureCanvasKivyAgg):
+
+    axis = ListProperty()
+    x1 = NumericProperty(0)
+
+    def __init__(self, axis=(), **kwargs):
+        self.fig, self.host = plt.subplots()
+        FigureCanvasKivyAgg.__init__(self, self.fig, **kwargs)
+
+    def initialize(self, axis):
+        self.fig.subplots_adjust(right=0.75)
+        host = self.host
+
+        par1 = host.twinx()
+        par2 = host.twinx()
+        par2.spines['right'].set_position(('axes', 1.2))
+
+        t = range(100)
+        data = [0 for _ in range(100)]
+        l = []
+
+        support = (host, par1, par2)
+        for a, s in zip(axis, support):
+            data_ = data[:]
+            data_[0] = a[2]
+            line, = s.plot(t, data_, a[3], label=a[0])
+            s.set_ylabel(a[0])
+            s.yaxis.label.set_color(line.get_color())
+            l.append({ 'line': line, 'data': data_ })
+
+        self.l = tuple(l)
+
+    def update(self, t):
+        for d, v in zip(self.l, t):
+            data = d['data']
+            data.pop(0)
+            data.append(v)
+            d['line'].set_ydata(data)
+        self.draw()
 
 _telemetryRe = re.compile('^\d+\s+V=(\d+)\s+\d+\s+I=(\d+)\s+\d+\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+POW=(\d+)\s+')
 
@@ -21,9 +67,15 @@ class AlmaConsole(App):
     def __init__(self):
         event = Clock.create_trigger(self.input)
         App.__init__(self)
-        print '10>>', event
         self.comm = Communicator('/dev/ttyACM0', self.input)
         self.badFrame = 0
+        self.stage2 = False
+
+    def init_axis(self):
+        if self.stage2: return
+        self.stage2 = True
+        self.root.ids.graph_aiw.initialize(
+            (('w', 0, 25, 'r-'), ('v', 0, 22, 'g-'), ('i', 0, 12, 'b-')))
 
     def set_budget(self, budget, motion):
         v = budget.get_value(motion.pos)
@@ -38,20 +90,26 @@ class AlmaConsole(App):
     @mainthread
     def input(self, *args):
         print args[0]
+        self.init_axis()
         m = _telemetryRe.match(args[0])
         if not m:
             self.badFrame += 1
             return
         v, i, b, l, r, w = m.groups()
+        v = float(v) / 10
+        i = float(i) / 10
+        w = float(w) / 1000
+
         ids = self.root.ids
-        ids.v.value = float(v) / 10
-        ids.i.value = float(i) / 10
+        ids.v.value = v
+        ids.i.value = i
         ids.b.value = float(b) / 100
         ids.l.value = float(l) / 100
         ids.r.value = float(r) / 100
-        ids.w.value = float(w) / 1000
+        ids.w.value = w
+
+        ids.graph_aiw.update((w, v, i))
 
 console = AlmaConsole()
-#Clock.schedule_interval(console.tick, 0.5)
 console.run()
 console.comm.destroy()
