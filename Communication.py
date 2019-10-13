@@ -6,8 +6,8 @@ class Communicator:
 
     def __init__(self, tty, callback):
         self.callback = callback
-        self.in_ = Serial(tty)
-        self.out = Serial(tty)
+        self.in_ = Serial(tty, 115200)
+        self.out = Serial(tty, 115200)
         self.alive = True
         self.thread = threading.Thread(target=self._thread)
         self.thread.start()

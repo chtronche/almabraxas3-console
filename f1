@@ -5,7 +5,7 @@ Config.set('graphics', 'width', 1100)
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 
 import matplotlib.pyplot as plt
-import re
+import re, sys
 
 from kivy.app import App
 from kivy.clock import Clock, mainthread
@@ -19,6 +19,8 @@ class KtsMeter(SpeedMeter):
 
     def value_str(self, n):
         return '%.1f' % (n / 2.0)
+
+_serial = sys.argv[1]
 
 class Figure(FigureCanvasKivyAgg):
 
@@ -62,12 +64,14 @@ class Figure(FigureCanvasKivyAgg):
 
 _telemetryRe = re.compile('^\d+\s+V=(\d+)\s+\d+\s+I=(\d+)\s+\d+\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+POW=(\d+)\s+')
 
+print sys.argv
+
 class AlmaConsole(App):
 
     def __init__(self):
         event = Clock.create_trigger(self.input)
         App.__init__(self)
-        self.comm = Communicator('/dev/ttyACM0', self.input)
+        self.comm = Communicator(_serial, self.input)
         self.badFrame = 0
         self.stage2 = False
 

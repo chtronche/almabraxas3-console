@@ -8,8 +8,8 @@
     size_hint: None,None
     width: 200
     height: 200
-    displayFirst: False
-    displayLast: False
+    display_first: False
+    display_last: False
 
 <ToggleButton>:
     size_hint_y: None
@@ -103,5 +103,5 @@ BoxLayout:
             id: motor_auto
             group: 'motor'
             text: 'Auto'
-            on_press: app.comm.write('set budget')
+            on_press: app.comm.write('reset budget')
 
