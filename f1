@@ -60,6 +60,30 @@ class Figure(FigureCanvasKivyAgg):
             data.pop(0)
             data.append(v)
             d['line'].set_ydata(data)
+            self.draw()
+
+class Figure2(FigureCanvasKivyAgg):
+
+    def __init__(self, **kwargs):
+        self.fig = plt.figure()
+        FigureCanvasKivyAgg.__init__(self, self.fig, **kwargs)
+        self.vl = []
+        self.il = []
+
+    def initialize(self):
+        axes = self.fig.gca()
+        axes.set_xlim(0, 25)
+        axes.set_ylim(0, 1.5)
+        axes.set_xlabel('V')
+        axes.set_ylabel('I')
+        axes.grid(True)
+        self.axes = axes
+
+    def update(self, v, i):
+        n = 30
+        self.vl = self.vl[n:] + [v]
+        self.il = self.il[n:] + [i]
+        self.axes.scatter(self.vl, self.il, s=4)
         self.draw()
 
 _telemetryRe = re.compile('^\d+\s+V=(\d+)\s+\d+\s+I=(\d+)\s+\d+\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+POW=(\d+)\s+')
@@ -80,6 +104,7 @@ class AlmaConsole(App):
         self.stage2 = True
         self.root.ids.graph_aiw.initialize(
             (('w', 0, 25, 'r-'), ('v', 0, 22, 'g-'), ('i', 0, 12, 'b-')))
+        self.root.ids.graph_iv.initialize()
 
     def set_budget(self, budget, motion):
         v = budget.get_value(motion.pos)
@@ -113,6 +138,7 @@ class AlmaConsole(App):
         ids.w.value = w
 
         ids.graph_aiw.update((w, v, i))
+        ids.graph_iv.update(v, i / 10)
 
 console = AlmaConsole()
 console.run()
