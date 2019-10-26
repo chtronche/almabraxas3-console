@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 from kivy.config import Config
-Config.set('graphics', 'width', 1100)
+Config.set('graphics', 'width', 1400)
+Config.set('graphics', 'height', 650)
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 
 import matplotlib.pyplot as plt
@@ -22,6 +23,8 @@ class KtsMeter(SpeedMeter):
 
 _serial = sys.argv[1]
 
+_100 = range(100)
+
 class Figure(FigureCanvasKivyAgg):
 
     axis = ListProperty()
@@ -34,12 +37,12 @@ class Figure(FigureCanvasKivyAgg):
     def initialize(self, axis):
         self.fig.subplots_adjust(right=0.75)
         host = self.host
+        host.grid(True)
 
         par1 = host.twinx()
         par2 = host.twinx()
         par2.spines['right'].set_position(('axes', 1.2))
 
-        t = range(100)
         data = [0 for _ in range(100)]
         l = []
 
@@ -47,7 +50,7 @@ class Figure(FigureCanvasKivyAgg):
         for a, s in zip(axis, support):
             data_ = data[:]
             data_[0] = a[2]
-            line, = s.plot(t, data_, a[3], label=a[0])
+            line, = s.plot(_100, data_, a[3], label=a[0])
             s.set_ylabel(a[0])
             s.yaxis.label.set_color(line.get_color())
             l.append({ 'line': line, 'data': data_ })
@@ -70,23 +73,61 @@ class Figure2(FigureCanvasKivyAgg):
         self.vl = []
         self.il = []
 
-    def initialize(self):
+    def initialize(self, xmax, ymax, xlabel, ylabel):
         axes = self.fig.gca()
-        axes.set_xlim(0, 25)
-        axes.set_ylim(0, 1.5)
-        axes.set_xlabel('V')
-        axes.set_ylabel('I')
+        axes.set_xlim(0, xmax)
+        axes.set_ylim(0, ymax)
+        axes.set_xlabel(xlabel)
+        axes.set_ylabel(ylabel)
         axes.grid(True)
         self.axes = axes
+        self.scatter = self.axes.scatter(self.vl, self.il, s=4)
 
     def update(self, v, i):
         n = 30
-        self.vl = self.vl[n:] + [v]
-        self.il = self.il[n:] + [i]
-        self.axes.scatter(self.vl, self.il, s=4)
+        self.vl = self.vl[-n:] + [v]
+        self.il = self.il[-n:] + [i]
+        self.scatter.set_offsets(zip(self.vl, self.il))
         self.draw()
 
-_telemetryRe = re.compile('^\d+\s+V=(\d+)\s+\d+\s+I=(\d+)\s+\d+\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+POW=(\d+)\s+')
+class FigureBar(FigureCanvasKivyAgg):
+
+    def __init__(self, **kwargs):
+        self.fig = plt.figure()
+        FigureCanvasKivyAgg.__init__(self, self.fig, **kwargs)
+        self.maxUp = 1
+        self.minDown = -1
+        n = self.n = 80
+        self.up = [0] * n
+        self.down = [0] * n
+
+    def initialize(self):
+        plt.figure(self.fig.number)
+        _n = range(self.n)
+        self.barUp = plt.bar(_n, self.up)
+        self.fig.gca().grid(True)
+        self.barDown = plt.bar(_n, self.down)
+
+    def update(self, up, down):
+        if up > self.maxUp:
+            self.maxUp = up
+            self.fig.gca().set_ylim(self.minDown - 3, self.maxUp + 3)
+        self.up = self.up[1:]
+        self.up.append(up)
+        for r, v in zip(self.barUp, self.up):
+            r.set_height(v)
+
+        if down < self.minDown:
+            self.minDown = down
+            self.fig.gca().set_ylim(self.minDown - 3, self.maxUp + 3)
+        self.down = self.down[1:]
+        self.down.append(down)
+        for r, v in zip(self.barDown, self.down):
+            r.set_height(v)
+
+        self.draw()
+
+_telemetryRe = re.compile('^\d+\s+V=(\d+)\s+\d+\s+I=(\d+)\s+\d+\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+POW=(\d+)\s+.*v=(-?\d+) \\^=(-?\d+)')
 
 print sys.argv
 
@@ -104,7 +145,9 @@ class AlmaConsole(App):
         self.stage2 = True
         self.root.ids.graph_aiw.initialize(
             (('w', 0, 25, 'r-'), ('v', 0, 22, 'g-'), ('i', 0, 12, 'b-')))
-        self.root.ids.graph_iv.initialize()
+        self.root.ids.graph_iv.initialize(25, 1.5, 'V', 'I')
+        self.root.ids.graph_rssi.initialize()
+        self.root.ids.graph_bp.initialize(800, 25, 'B', 'W')
 
     def set_budget(self, budget, motion):
         v = budget.get_value(motion.pos)
@@ -124,21 +167,25 @@ class AlmaConsole(App):
         if not m:
             self.badFrame += 1
             return
-        v, i, b, l, r, w = m.groups()
+        v, i, b, l, r, w, rssiUp, rssiDown = m.groups()
         v = float(v) / 10
         i = float(i) / 10
         w = float(w) / 1000
 
+        b = float(b)
+
         ids = self.root.ids
         ids.v.value = v
         ids.i.value = i
-        ids.b.value = float(b) / 100
+        ids.b.value = b / 100
         ids.l.value = float(l) / 100
         ids.r.value = float(r) / 100
         ids.w.value = w
 
         ids.graph_aiw.update((w, v, i))
         ids.graph_iv.update(v, i / 10)
+        ids.graph_rssi.update(-int(rssiUp), int(rssiDown))
+        ids.graph_bp.update(b, w)
 
 console = AlmaConsole()
 console.run()

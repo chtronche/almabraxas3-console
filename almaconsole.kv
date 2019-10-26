@@ -18,7 +18,7 @@
 BoxLayout:
     orientation: 'horizontal'
     GridLayout:
-    	cols: 4
+    	cols: 5
         padding: 10
         spacing: 10
     
@@ -45,6 +45,9 @@ BoxLayout:
             tick: 2
             subtick: 2
             label: 'W'
+    
+        FigureBar:
+            id: graph_rssi
     
         Figure2:
             id: graph_iv
@@ -74,7 +77,10 @@ BoxLayout:
             label: 'right/100'
     
         Label:
-    
+
+        Figure2:
+            id: graph_bp
+
         KtsMeter:
             max: 8
             tick: 1
