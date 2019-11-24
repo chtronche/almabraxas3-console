@@ -10,6 +10,7 @@ import re, sys
 
 from kivy.app import App
 from kivy.clock import Clock, mainthread
+from kivy.garden.mapview import MapMarker, MapView
 from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 from kivy.properties import ListProperty, NumericProperty
 
@@ -20,6 +21,12 @@ class KtsMeter(SpeedMeter):
 
     def value_str(self, n):
         return '%.1f' % (n / 2.0)
+
+_heading = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }
+
+class HeadingIndicator(SpeedMeter):
+    def value_str(self, n):
+        return _heading.get(n) or str(n)
 
 _serial = sys.argv[1]
 
@@ -127,18 +134,26 @@ class FigureBar(FigureCanvasKivyAgg):
 
         self.draw()
 
-_telemetryRe = re.compile('^\d+\s+V=(\d+)\s+\d+\s+I=(\d+)\s+\d+\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+POW=(\d+)\s+.*v=(-?\d+) \\^=(-?\d+)')
+_telemetryRe = re.compile('^(\d+)\s+V=(\d+)\s+\d+\s+I=(\d+)\s+\d+\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+POW=(\d+)\s+.*\sMH=(\d+)\s+(-?\d+\.\d+)_(-?\d+\.\d+)\s.*v=(-?\d+) \\^=(-?\d+)')
 
 print sys.argv
 
 class AlmaConsole(App):
 
     def __init__(self):
-        event = Clock.create_trigger(self.input)
         App.__init__(self)
         self.comm = Communicator(_serial, self.input)
         self.badFrame = 0
         self.stage2 = False
+        self.lastClock = 0
+
+        self.debugLat = 48.877964
+        self.debugLon = 1.975428
+
+        self.minLat = 100
+        self.maxLat = -100
+        self.minLon = 400
+        self.maxLon = -400
 
     def init_axis(self):
         if self.stage2: return
@@ -159,6 +174,23 @@ class AlmaConsole(App):
         ids.motor_off.state = 'normal'
         ids.motor_auto.state = 'normal'
 
+    # Must be called in mainthread !
+    def processCoord(self, lat, lon):
+        map = self.root.ids.map
+        map.add_marker(MapMarker(lat=lat, lon=lon))
+        orig = (self.minLat, self.maxLat, self.minLon, self.maxLon)
+        if lat < self.minLat: self.minLat = lat
+        if lat > self.maxLat: self.maxLat = lat
+        if lon < self.minLon: self.minLon = lon
+        if lon > self.maxLon: self.maxLon = lon
+        new = (self.minLat, self.maxLat, self.minLon, self.maxLon)
+        if new != orig:
+            map.center_on((self.maxLat + self.minLat) / 2, (self.minLon + self.maxLon) / 2)
+            viewport_bbox = map.get_bbox()
+            if not viewport_bbox.collide(self.minLat, self.minLon) \
+               or not viewport_bbox.collide(self.maxLat, self.maxLon):
+                map.zoom -= 1
+
     @mainthread
     def input(self, *args):
         print args[0]
@@ -167,7 +199,8 @@ class AlmaConsole(App):
         if not m:
             self.badFrame += 1
             return
-        v, i, b, l, r, w, rssiUp, rssiDown = m.groups()
+        remoteClock, v, i, b, l, r, w, magneticHeading, lat, lon, rssiUp, rssiDown = m.groups()
+
         v = float(v) / 10
         i = float(i) / 10
         w = float(w) / 1000
@@ -181,11 +214,21 @@ class AlmaConsole(App):
         ids.l.value = float(l) / 100
         ids.r.value = float(r) / 100
         ids.w.value = w
+        ids.mh.value = int(magneticHeading)
+
+        remoteClock = int(remoteClock)
+        if remoteClock == self.lastClock: return
+        self.lastClock = remoteClock
 
         ids.graph_aiw.update((w, v, i))
         ids.graph_iv.update(v, i / 10)
         ids.graph_rssi.update(-int(rssiUp), int(rssiDown))
         ids.graph_bp.update(b, w)
+
+        self.debugLat += 0.001
+        self.debugLon -= 0.001
+
+        self.processCoord(self.debugLat, self.debugLon)
 
 console = AlmaConsole()
 console.run()

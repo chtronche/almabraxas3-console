@@ -76,7 +76,11 @@ BoxLayout:
             subtick: 2
             label: 'right/100'
     
-        Label:
+        MapView:
+            id: map
+            zoom: 17
+            lon: 1.975428
+            lat: 48.877964
 
         Figure2:
             id: graph_bp
@@ -86,6 +90,16 @@ BoxLayout:
             tick: 1
             subtick: 5
             label: 'kts'
+
+        HeadingIndicator:
+            id: mh
+            min: 0
+            max: 360
+            start_angle: 0
+            end_angle: 0
+            tick: 45
+            subtick: 3
+            display_first: True
 
     BoxLayout:
         size_hint_x: None
