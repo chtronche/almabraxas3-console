@@ -3,7 +3,7 @@
 from kivy.config import Config
 Config.set('graphics', 'width', 1400)
 Config.set('graphics', 'height', 650)
-Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
+#Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 
 import matplotlib.pyplot as plt
 import re, sys
@@ -165,6 +165,7 @@ class AlmaConsole(App):
         self.root.ids.graph_bp.initialize(800, 25, 'B', 'W')
 
     def set_budget(self, budget, motion):
+        print '$$$$$$$$$$$$$$$$$$$$$$$'
         v = budget.get_value(motion.pos)
         if not v: return
         print '******', v, '*********'
@@ -173,6 +174,10 @@ class AlmaConsole(App):
         ids.motor_set.state = 'down'
         ids.motor_off.state = 'normal'
         ids.motor_auto.state = 'normal'
+
+    def xprint(self, *args):
+        # Ugly, but since MapView grap all touch_up events, we have to propagate "by hand"
+        self.set_budget(self.root.ids.b, args[1])
 
     # Must be called in mainthread !
     def processCoord(self, lat, lon):
@@ -214,7 +219,7 @@ class AlmaConsole(App):
         ids.l.value = float(l) / 100
         ids.r.value = float(r) / 100
         ids.w.value = w
-        ids.mh.value = int(magneticHeading)
+        ids.mh.value = int(magneticHeading) * 360.0 / 256
 
         remoteClock = int(remoteClock)
         if remoteClock == self.lastClock: return
@@ -225,8 +230,8 @@ class AlmaConsole(App):
         ids.graph_rssi.update(-int(rssiUp), int(rssiDown))
         ids.graph_bp.update(b, w)
 
-        self.debugLat += 0.001
-        self.debugLon -= 0.001
+        self.debugLat += 0.01
+        self.debugLon -= 0.01
 
         self.processCoord(self.debugLat, self.debugLon)
 
