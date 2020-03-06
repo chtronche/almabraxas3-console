@@ -5,9 +5,9 @@
     end_angle: 120
     cadran_color: '#6060ff'
     label_font_size: 20
-    size_hint: None,None
-    width: 200
-    height: 200
+#    size_hint: None,None
+#    width: 200
+#    height: 200
     display_first: False
     display_last: False
 
@@ -15,99 +15,124 @@
     size_hint_y: None
     height: 24
 
+<BoxLayout>:
+    spacing: 5
+
 BoxLayout:
-    orientation: 'horizontal'
-    GridLayout:
-    	cols: 5
-        padding: 10
-        spacing: 10
-    
-        Figure:
-            id: graph_aiw
-    
-        SpeedMeter:
-            id: v
-            max: 22
-            tick: 2
-            subtick: 4
-            sectors: (0, '#ff0000', 6)
-            label: 'V'
-    
-        SpeedMeter:
-            id: i
-            max: 12
-            tick: 1
-            label: 'A / 10'
-    
-        SpeedMeter:
-            id: w
-            max: 26
-            tick: 2
-            subtick: 2
-            label: 'W'
-    
-        FigureBar:
-            id: graph_rssi
-    
-        Figure2:
-            id: graph_iv
-    
-        SpeedMeter:
-            id: b
-            max: 14
-            tick: 2
-            subtick: 4
-            label: 'B/100'
-            on_touch_up: app.set_budget(*args)
-    
-        SpeedMeter:
-            id: l
-            min: -16
-            max: 16
-            tick: 2
-            subtick: 2
-            label: 'left/100'
-    
-        SpeedMeter:
-            id: r
-            min: -16
-            max: 16
-            tick: 2
-            subtick: 2
-            label: 'right/100'
-    
-        MapView:
-            id: map
-            zoom: 17
-            lon: 1.975428
-            lat: 48.877964
-            on_touch_up: app.xprint(*args)
-
-        Figure2:
-            id: graph_bp
-
-        KtsMeter:
-            max: 8
-            tick: 1
-            subtick: 5
-            label: 'kts'
-
-        HeadingIndicator:
-            id: mh
-            min: 0
-            max: 360
-            start_angle: 0
-            end_angle: 0
-            tick: 45
-            subtick: 3
-            display_first: True
+    orientation: 'vertical'
 
     BoxLayout:
-        size_hint_x: None
-        width: 100
-        orientation: 'vertical'
+        
+        BoxLayout:
+            size_hint_x: 0.3
+            orientation: 'vertical'
+            padding: 5
+    
+            Figure:
+                id: graph_aiw
+    
+            Figure2:
+                id: graph_iv
+        
+            Figure2:
+                id: graph_bp
+    
+            FigureBar:
+                id: graph_rssi
+        
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: 0.5
+    
+            BoxLayout:
+                size_hint_y: 0.25
+    
+                SpeedMeter:
+                    id: v
+                    max: 22
+                    tick: 2
+                    subtick: 4
+                    sectors: (0, '#ff0000', 6)
+                    label: 'V'
+            
+                SpeedMeter:
+                    id: i
+                    max: 12
+                    tick: 1
+                    label: 'A / 10'
+            
+                SpeedMeter:
+                    id: w
+                    max: 26
+                    tick: 2
+                    subtick: 2
+                    label: 'W'
+            
+            BoxLayout:
+                size_hint_y: 0.25
+    
+                SpeedMeter:
+                    id: l
+                    min: -16
+                    max: 16
+                    tick: 2
+                    subtick: 2
+                    label: 'left/100'
+    
+                SpeedMeter:
+                    id: b
+                    max: 14
+                    tick: 2
+                    subtick: 4
+                    label: 'B/100'
+                    on_touch_up: app.set_budget(*args)
+    
+                SpeedMeter:
+                    id: r
+                    min: -16
+                    max: 16
+                    tick: 2
+                    subtick: 2
+                    label: 'right/100'
+    
+            MapView:
+                size_hint_y: 0.5
+                id: map
+                zoom: 17
+                lon: 1.975428
+                lat: 48.877964
+                on_touch_up: app.xprint(*args)
+    
+        BoxLayout:
+            size_hint_x: 0.2
+            orientation: 'vertical'
+    
+            HeadingIndicator:
+                id: mh
+                min: 0
+                max: 360
+                start_angle: 0
+                end_angle: 0
+                tick: 45
+                subtick: 3
+                display_first: True
+    
+            KtsMeter:
+                max: 8
+                tick: 1
+                subtick: 5
+                label: 'kts'
+    
+    BoxLayout:
+
+        size_hint_y: None
+        height: 24
+        
         Label:
             text: 'Motor'
+            size_hint_y: None
+            height: 24
+
         ToggleButton:
             id: motor_off
             group: 'motor'
@@ -126,4 +151,3 @@ BoxLayout:
             group: 'motor'
             text: 'Auto'
             on_press: app.comm.write('reset budget')
-
