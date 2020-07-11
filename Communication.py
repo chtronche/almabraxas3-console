@@ -1,4 +1,4 @@
-import threading, wx
+import threading
 
 from serial import Serial
 
@@ -23,4 +23,5 @@ class Communicator:
         self.thread.join()
 
     def write(self, s):
-        print >>self.out, s
+        self.out.write(bytes(s, 'iso-8859-15'))
+        self.out.write(b'\n')

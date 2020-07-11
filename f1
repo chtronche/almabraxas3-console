@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from kivy.config import Config
 Config.set('graphics', 'width', 1200)
@@ -10,7 +10,7 @@ import re, sys
 
 from kivy.app import App
 from kivy.clock import Clock, mainthread
-from kivy.garden.mapview import MapMarker, MapView
+from kivy_garden.mapview import MapMarker, MapView
 from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 from kivy.properties import ListProperty, NumericProperty
 
@@ -94,7 +94,7 @@ class Figure2(FigureCanvasKivyAgg):
         n = 30
         self.vl = self.vl[-n:] + [v]
         self.il = self.il[-n:] + [i]
-        self.scatter.set_offsets(zip(self.vl, self.il))
+        self.scatter.set_offsets(tuple(zip(self.vl, self.il)))
         self.draw()
 
 class FigureBar(FigureCanvasKivyAgg):
@@ -134,9 +134,9 @@ class FigureBar(FigureCanvasKivyAgg):
 
         self.draw()
 
-_telemetryRe = re.compile('^(\d+)\s+V=(\d+)\s+\d+\s+I=(\d+)\s+\d+\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+POW=(\d+)\s+.*\sMH=(\d+)\s+(-?\d+\.\d+)_(-?\d+\.\d+)\s.*v=(-?\d+) \\^=(-?\d+)')
+_telemetryRe = re.compile('^(\d+)\s+V=(\d+)\s+\d+\s+I=\d+\s+(\d+)\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+POW=(-?\d+)\s+.*\sMH=(\d+)\s+(-?\d+\.\d+)_(-?\d+\.\d+)\s.*v=(-?\d+) \\^=(-?\d+)')
 
-print sys.argv
+print(sys.argv)
 
 class AlmaConsole(App):
 
@@ -159,16 +159,16 @@ class AlmaConsole(App):
         if self.stage2: return
         self.stage2 = True
         self.root.ids.graph_aiw.initialize(
-            (('w', 0, 25, 'r-'), ('v', 0, 22, 'g-'), ('i', 0, 12, 'b-')))
+            (('w', 0, 25, 'r-'), ('v', 0, 22, 'g-'), ('i', 0, 120, 'b-')))
         self.root.ids.graph_iv.initialize(25, 1.5, 'V', 'I')
         self.root.ids.graph_rssi.initialize()
         self.root.ids.graph_bp.initialize(800, 25, 'B', 'W')
 
     def set_budget(self, budget, motion):
-        print '$$$$$$$$$$$$$$$$$$$$$$$'
+        print('$$$$$$$$$$$$$$$$$$$$$$$')
         v = budget.get_value(motion.pos)
         if not v: return
-        print '******', v, '*********'
+        print('******', v, '*********')
         self.comm.write('set budget %d' % int(v * 100))
         ids = self.root.ids
         ids.motor_set.state = 'down'
@@ -182,7 +182,9 @@ class AlmaConsole(App):
     # Must be called in mainthread !
     def processCoord(self, lat, lon):
         map = self.root.ids.map
-        map.add_marker(MapMarker(lat=lat, lon=lon))
+        if lat > 95: # no fix
+            return
+        map.add_marker(MapMarker(lat=lat, lon=lon,source='square.png'))
         orig = (self.minLat, self.maxLat, self.minLon, self.maxLon)
         if lat < self.minLat: self.minLat = lat
         if lat > self.maxLat: self.maxLat = lat
@@ -198,23 +200,24 @@ class AlmaConsole(App):
 
     @mainthread
     def input(self, *args):
-        print args[0]
+        print(args[0])
         self.init_axis()
-        m = _telemetryRe.match(args[0])
+        m = _telemetryRe.match(args[0].decode('iso-8859-1'))
         if not m:
+            print('*** bad frame')
             self.badFrame += 1
             return
         remoteClock, v, i, b, l, r, w, magneticHeading, lat, lon, rssiUp, rssiDown = m.groups()
 
         v = float(v) / 10
-        i = float(i) / 10
+        i = (float(i) - 2200) / 10
         w = float(w) / 1000
 
         b = float(b)
 
         ids = self.root.ids
         ids.v.value = v
-        ids.i.value = i
+        ids.i.value = i / 10.0
         ids.b.value = b / 100
         ids.l.value = float(l) / 100
         ids.r.value = float(r) / 100
@@ -226,12 +229,12 @@ class AlmaConsole(App):
         self.lastClock = remoteClock
 
         ids.graph_aiw.update((w, v, i))
-        ids.graph_iv.update(v, i / 10)
+        ids.graph_iv.update(v, i / 100.0)
         ids.graph_rssi.update(-int(rssiUp), int(rssiDown))
-        ids.graph_bp.update(b, w)
+        ids.graph_bp.update(b, i /4.0)
 
-        self.debugLat += 0.01
-        self.debugLon -= 0.01
+        self.debugLat = float(lat)
+        self.debugLon = float(lon)
 
         self.processCoord(self.debugLat, self.debugLon)
 

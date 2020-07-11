@@ -73,8 +73,8 @@ BoxLayout:
     
                 SpeedMeter:
                     id: l
-                    min: -16
-                    max: 16
+                    min: -10
+                    max: 10
                     tick: 2
                     subtick: 2
                     label: 'left/100'
@@ -89,12 +89,20 @@ BoxLayout:
     
                 SpeedMeter:
                     id: r
-                    min: -16
-                    max: 16
+                    min: -10
+                    max: 10
                     tick: 2
                     subtick: 2
                     label: 'right/100'
     
+            Slider:
+                size_hint_y: None
+                size_hint_x: 1
+                min: -100
+                max: 100
+                step: 10
+                on_touch_up: app.comm.write('set helm %d' % int(self.value))
+
             MapView:
                 size_hint_y: 0.5
                 id: map
@@ -129,7 +137,7 @@ BoxLayout:
         height: 24
         
         Label:
-            text: 'Motor'
+            text: 'Power'
             size_hint_y: None
             height: 24
 
@@ -151,3 +159,15 @@ BoxLayout:
             group: 'motor'
             text: 'Auto'
             on_press: app.comm.write('reset budget')
+
+        Label:
+            text: 'Mode'
+
+        ToggleButton:
+            group: 'mode'
+            text: 'Cruise'
+            state: 'down'
+
+        ToggleButton:
+            group: 'mode'
+            text: 'Manual'
