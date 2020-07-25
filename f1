@@ -134,7 +134,12 @@ class FigureBar(FigureCanvasKivyAgg):
 
         self.draw()
 
-_telemetryRe = re.compile('^(\d+)\s+V=(\d+)\s+\d+\s+I=\d+\s+(\d+)\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+POW=(-?\d+)\s+.*\sMH=(\d+)\s+(-?\d+\.\d+)_(-?\d+\.\d+)\s.*v=(-?\d+) \\^=(-?\d+)')
+_telemetryRe = re.compile(
+    '^(\d+)\s+'
+    'V=(\d+)\s+\d+\s+I=\d+\s+(\d+)\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+.*'
+    '\sH=(\d+)\sMH=(\d+)\sTH=(\d+)\sWP=(\d+)'
+    '\s+(-?\d+\.\d+) _(-?\d+\.\d+)\s.*v=(-?\d+) \\^=(-?\d+)'
+)
 
 print(sys.argv)
 
@@ -154,6 +159,8 @@ class AlmaConsole(App):
         self.maxLat = -100
         self.minLon = 400
         self.maxLon = -400
+
+        self.markerList = []
 
     def init_axis(self):
         if self.stage2: return
@@ -184,7 +191,11 @@ class AlmaConsole(App):
         map = self.root.ids.map
         if lat > 95: # no fix
             return
-        map.add_marker(MapMarker(lat=lat, lon=lon,source='square.png'))
+        marker = MapMarker(lat=lat, lon=lon,source='square.png')
+        map.add_marker(marker)
+        self.markerList.append(marker)
+        if len(self.markerList) > 10:
+            map.remove_marker(self.markerList.pop(0))
         orig = (self.minLat, self.maxLat, self.minLon, self.maxLon)
         if lat < self.minLat: self.minLat = lat
         if lat > self.maxLat: self.maxLat = lat
@@ -207,11 +218,12 @@ class AlmaConsole(App):
             print('*** bad frame')
             self.badFrame += 1
             return
-        remoteClock, v, i, b, l, r, w, magneticHeading, lat, lon, rssiUp, rssiDown = m.groups()
+        remoteClock, v, i, b, l, r, w, h, magneticHeading, th, lat, lon, rssiUp, rssiDown = m.groups()
 
         v = float(v) / 10
         i = (float(i) - 2200) / 10
-        w = float(w) / 1000
+        #w = float(w) / 1000
+        w = 0
 
         b = float(b)
 
