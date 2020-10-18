@@ -1,4 +1,4 @@
-from kivy.garden.mapview import MapLayer, MapView
+from kivy_garden.mapview import MapLayer, MapView
 from kivy.graphics import *
 from math import cos, pi, radians, sin
 
@@ -13,12 +13,13 @@ class _InMap:
 
 class _Converter:
 
-    def __init__(self, bbox, size):
+    def __init__(self, bbox, parent):
+        size = parent.size
         self.xa = float(size[0]) / (bbox[3] - bbox[1])
-        self.xb = -self.xa * bbox[1]
+        self.xb = -self.xa * bbox[1] + parent.x
 
         self.ya = float(size[1]) / (bbox[2] - bbox[0])
-        self.yb = -self.ya * bbox[0]
+        self.yb = -self.ya * bbox[0] + parent.y
 
     def convert(self, p, delta):
         return (p[0] * self.xa + self.xb - delta, p[1] * self.ya + self.yb - delta)
@@ -84,10 +85,10 @@ class AlmaNavLayer(MapLayer):
         })
         self._addPointGL()
 
-    def reposition(self, *args):
+    def reposition(self):
         mapview = self.parent
         bbox = mapview.get_bbox()
-        convert = self.convert = _Converter(bbox, mapview.size).convert
+        convert = self.convert = _Converter(bbox, mapview).convert
         in_map = self.in_map = _InMap(bbox).in_map
         self.navPlanIG.clear()
         self.pathIG.clear()

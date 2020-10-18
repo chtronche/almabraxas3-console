@@ -17,6 +17,8 @@ from kivy.properties import ListProperty, NumericProperty
 from Communication import Communicator
 from speedmeter import SpeedMeter
 
+import AlmaNavLayer
+
 class KtsMeter(SpeedMeter):
 
     def value_str(self, n):
@@ -31,6 +33,20 @@ class HeadingIndicator(SpeedMeter):
 _serial = sys.argv[1]
 
 _100 = range(100)
+
+_l = [
+    (1.975363849732992,48.87794375473663),
+    (1.975102689568917,48.8780274694703),
+    (1.975353484818965,48.87803093815558),
+    (1.975809665021118,48.87790650705719),
+    (1.97670312231099,48.8776829288465),
+    (1.977669886056208,48.87746875696516),
+    (1.977430197980181,48.87711098266111),
+]
+
+def _rec(lon, lat, heading, targetHeading):
+    return { 'point': (lon, lat), 'heading': heading, 'targetHeading': targetHeading }
+
 
 class Figure(FigureCanvasKivyAgg):
 
@@ -136,7 +152,7 @@ class FigureBar(FigureCanvasKivyAgg):
 
 _telemetryRe = re.compile(
     '^(\d+)\s+'
-    'V=(\d+)\s+\d+\s+I=\d+\s+(\d+)\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+.*'
+    'V=(\d+)\s+\d+\s+I=(\d+)\s+\d+\s+P=(\d+)\s+MPPT=\d+\s+L=(\d+)\s+R=(\d+)\s+.*'
     '\sH=(\d+)\sMH=(\d+)\sTH=(\d+)\sWP=(\d+)'
     '\s+(-?\d+\.\d+) _(-?\d+\.\d+)\s.*v=(-?\d+) \\^=(-?\d+)'
 )
@@ -160,7 +176,7 @@ class AlmaConsole(App):
         self.minLon = 400
         self.maxLon = -400
 
-        self.markerList = []
+        self.navLayer = AlmaNavLayer.AlmaNavLayer(_l)
 
     def init_axis(self):
         if self.stage2: return
@@ -170,6 +186,8 @@ class AlmaConsole(App):
         self.root.ids.graph_iv.initialize(25, 1.5, 'V', 'I')
         self.root.ids.graph_rssi.initialize()
         self.root.ids.graph_bp.initialize(800, 25, 'B', 'W')
+        self.root.ids.map.add_layer(self.navLayer)
+        #self.root.ids.map.add_marker(MapMarker(lon=1.975102689568917,lat=48.8780274694703))
 
     def set_budget(self, budget, motion):
         print('$$$$$$$$$$$$$$$$$$$$$$$')
@@ -187,15 +205,12 @@ class AlmaConsole(App):
         self.set_budget(self.root.ids.b, args[1])
 
     # Must be called in mainthread !
-    def processCoord(self, lat, lon):
+    def processCoord(self, lat, lon, th, h):
         map = self.root.ids.map
         if lat > 95: # no fix
             return
-        marker = MapMarker(lat=lat, lon=lon,source='square.png')
-        map.add_marker(marker)
-        self.markerList.append(marker)
-        if len(self.markerList) > 10:
-            map.remove_marker(self.markerList.pop(0))
+        
+        self.navLayer.addPoint(lon, lat, th, h)
         orig = (self.minLat, self.maxLat, self.minLon, self.maxLon)
         if lat < self.minLat: self.minLat = lat
         if lat > self.maxLat: self.maxLat = lat
@@ -218,7 +233,7 @@ class AlmaConsole(App):
             print('*** bad frame')
             self.badFrame += 1
             return
-        remoteClock, v, i, b, l, r, w, h, magneticHeading, th, lat, lon, rssiUp, rssiDown = m.groups()
+        remoteClock, v, i, b, l, r, h, magneticHeading, th, wp, lat, lon, rssiUp, rssiDown = m.groups()
 
         v = float(v) / 10
         i = (float(i) - 2200) / 10
@@ -248,7 +263,7 @@ class AlmaConsole(App):
         self.debugLat = float(lat)
         self.debugLon = float(lon)
 
-        self.processCoord(self.debugLat, self.debugLon)
+        self.processCoord(self.debugLat, self.debugLon, float(th) * 360.0 / 256, float(h) * 360.0 / 256)
 
 console = AlmaConsole()
 console.run()
