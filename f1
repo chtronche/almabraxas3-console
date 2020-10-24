@@ -205,12 +205,12 @@ class AlmaConsole(App):
         self.set_budget(self.root.ids.b, args[1])
 
     # Must be called in mainthread !
-    def processCoord(self, lat, lon, th, h):
+    def processCoord(self, lat, lon, th, h, wp):
         map = self.root.ids.map
         if lat > 95: # no fix
             return
         
-        self.navLayer.addPoint(lon, lat, th, h)
+        self.navLayer.addPoint(lon, lat, th, h, wp)
         orig = (self.minLat, self.maxLat, self.minLon, self.maxLon)
         if lat < self.minLat: self.minLat = lat
         if lat > self.maxLat: self.maxLat = lat
@@ -263,7 +263,7 @@ class AlmaConsole(App):
         self.debugLat = float(lat)
         self.debugLon = float(lon)
 
-        self.processCoord(self.debugLat, self.debugLon, float(th) * 360.0 / 256, float(h) * 360.0 / 256)
+        self.processCoord(self.debugLat, self.debugLon, float(th) * 360.0 / 256, float(h) * 360.0 / 256, int(wp))
 
 console = AlmaConsole()
 console.run()

@@ -31,6 +31,7 @@ class AlmaNavLayer(MapLayer):
         self.navPlan = navPlan
         self.path = []
         self.convert = None
+        self.wp = -1
         with self.canvas:
             self.navPlanIG = InstructionGroup()
             self.pathIG = InstructionGroup()
@@ -77,13 +78,16 @@ class AlmaNavLayer(MapLayer):
         add(Color(1, 0.65, 0))
         add(Line(points=[centerx, centery, centerx + dx, centery + dy]))
 
-    def addPoint(self, lon, lat, heading, targetHeading):
+    def addPoint(self, lon, lat, heading, targetHeading, wp):
         self.path.append({
             'point': (lon, lat),
             'heading': heading,
             'targetHeading': targetHeading,
         })
+        lastWP = self.wp
+        self.wp = wp
         self._addPointGL()
+        if lastWP != self.wp: self.reposition()
 
     def reposition(self):
         mapview = self.parent
@@ -97,7 +101,7 @@ class AlmaNavLayer(MapLayer):
         add(Color(1,0,0))
         p0 = self.navPlan[0]
         pos0 = convert(p0, 5)
-        for p in self.navPlan[1:]:
+        for idx, p in enumerate(self.navPlan[1:], start=1):
             pos = convert(p, 5)
             if not in_map(p0) and not in_map(p):
                 p0 = p
@@ -105,6 +109,10 @@ class AlmaNavLayer(MapLayer):
                 continue
             add(Line(points=[pos0[0]+5, pos0[1]+5, pos[0]+5, pos[1]+5]))
             add(Rectangle(pos=pos,size=(10,10)))
+            if idx == self.wp:
+                x = pos[0]
+                y = pos[1]
+                add(Line(points=[x-5,y-5,x+15,y-5,x+15,y+15,x-5,y+15],close=True))
 
             p0 = p
             pos0 = pos
